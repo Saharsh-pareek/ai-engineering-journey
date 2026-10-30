@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatchWise — AI Resume Matcher</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="monogram" href="/" aria-label="MatchWise home">M<span>&</span>W</a>
+    <div class="top-date">AI RESUME MATCHING · PYTHON PROJECT</div>
+
+    <nav class="nav-links">
+      <a href="#home">HOME</a>
+      <a href="#how-it-works">HOW IT WORKS</a>
+      <a href="#analyze">ANALYZE</a>
+      <a href="#results">RESULTS</a>
+    </nav>
+  </header>
+
+  <main id="home">
+    <section class="masthead">
+      <p class="masthead-kicker">A MORE THOUGHTFUL WAY TO MATCH</p>
+      <h1>MATCH<span>&</span>WISE</h1>
+      <p class="masthead-subtitle">AI-POWERED RESUME SCREENING</p>
+    </section>
+
+    <section class="hero">
+      <div class="hero-shade"></div>
+
+      <div class="hero-copy">
+        <p class="hero-eyebrow">LESS GUESSWORK. MORE CLARITY.</p>
+
+        <h2>Every profile has<br> a story to tell.</h2>
+
+        <p class="hero-description">
+          Explore the skills, experience, and strengths behind every resume —
+          thoughtfully compared with the role you need to fill.
+        </p>
+
+        <a class="hero-cta" href="#analyze">
+          START AN ANALYSIS <span>↗</span>
+        </a>
+      </div>
+
+      <div class="hero-caption">
+        BUILT WITH PYTHON · FLASK · GROQ
+      </div>
+    </section>
+
+    <section class="intro" id="how-it-works">
+      <p class="eyebrow">A SIMPLE, STRUCTURED WORKFLOW</p>
+      <h2>From resume to insight.</h2>
+
+      <div class="steps">
+        <article>
+          <span>01</span>
+          <h3>Share the role</h3>
+          <p>Paste a job description with the skills and experience that matter.</p>
+        </article>
+
+        <article>
+          <span>02</span>
+          <h3>Add resumes</h3>
+          <p>Upload PDF or DOCX resumes for structured information extraction.</p>
+        </article>
+
+        <article>
+          <span>03</span>
+          <h3>Review the match</h3>
+          <p>Explore AI-estimated scores, matching skills, and areas not demonstrated.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="analyze-section" id="analyze">
+      <div class="section-heading">
+        <p class="eyebrow">YOUR ANALYSIS</p>
+        <h2>Begin with the details.</h2>
+        <p class="section-intro">
+          Add the role requirements and the resumes you would like to compare.
+        </p>
+      </div>
+
+      {% if error %}
+        <div class="alert" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <div class="form-panel">
+        <form method="POST" enctype="multipart/form-data" id="analysis-form">
+          <label for="job_description">THE JOB DESCRIPTION</label>
+
+          <textarea
+            id="job_description"
+            name="job_description"
+            placeholder="Paste responsibilities, required skills, qualifications, and experience..."
+            required
+          >{{ job_description }}</textarea>
+
+          <label for="resumes" class="upload-label">
+            CANDIDATE RESUMES
+            <span>PDF OR DOCX · UP TO 20 FILES</span>
+          </label>
+
+          <div class="upload-area">
+            <div class="upload-symbol">↑</div>
+            <strong>Choose your resume files</strong>
+            <p id="file-label">Select one or more PDF or DOCX files</p>
+
+            <input
+              id="resumes"
+              type="file"
+              name="resumes"
+              accept=".pdf,.docx"
+              multiple
+              required
+            >
+          </div>
+
+          <button type="submit" class="primary-btn" id="submit-btn">
+            ANALYZE RESUMES <span>↗</span>
+          </button>
+
+          <p class="privacy-note">
+            Files are processed temporarily for this demo.
+            Use fictional or consented resumes.
+          </p>
+        </form>
+      </div>
+    </section>
+
+    {% if results is not none %}
+    <section class="results-section" id="results">
+      <div class="section-heading">
+        <p class="eyebrow">ANALYSIS COMPLETE</p>
+        <h2>Candidate overview.</h2>
+        <p class="section-intro">
+          {{ results|length }} candidate{{ '' if results|length == 1 else 's' }}
+          reviewed · Ranked by AI-estimated match score
+        </p>
+      </div>
+
+      {% if results %}
+        {% for candidate in results %}
+        <article class="candidate-card">
+          <div class="candidate-top">
+            <div class="avatar">
+              {{ (candidate.name or 'C')[:1]|upper }}
+            </div>
+
+            <div class="candidate-name">
+              <h3>{{ candidate.name }}</h3>
+              <span>Candidate profile</span>
+            </div>
+
+            <div class="score-wrap">
+              <strong>{{ "%.1f"|format(candidate.score) }}%</strong>
+              <span>ESTIMATED MATCH</span>
+            </div>
+          </div>
+
+          <div class="score-track">
+            <div
+              class="score-fill"
+              style="width: {{ candidate.score }}%"
+            ></div>
+          </div>
+
+          <div class="skill-columns">
+            <div>
+              <h4>MATCHING SKILLS</h4>
+
+              {% set matching = candidate.details.get('matching_skills', []) %}
+
+              {% if matching %}
+                <div class="tags">
+                  {% for skill in matching %}
+                    <span class="tag good">{{ skill }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="muted">No matching skills listed.</p>
+              {% endif %}
+            </div>
+
+            <div>
+              <h4>SKILLS NOT DEMONSTRATED</h4>
+
+              {% set missing = candidate.details.get('missing_important_skills', []) %}
+
+              {% if missing %}
+                <div class="tags">
+                  {% for skill in missing %}
+                    <span class="tag gap">{{ skill }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="muted">No skill gaps listed.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="verdict">
+            <strong>AI-GENERATED SUMMARY</strong>
+            <p>
+              {{ candidate.details.get('final_verdict', 'No summary available.') }}
+            </p>
+          </div>
+
+          {% if candidate.details.get('experience_requirement_met') is not none %}
+            <p class="experience">
+              <strong>Experience requirement:</strong>
+              {{ candidate.details.get('experience_requirement_met') }}
+            </p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="form-panel">
+          <p>
+            No readable resume text was found. Scanned PDFs may require OCR
+            before analysis.
+          </p>
+        </div>
+      {% endif %}
+
+      <p class="disclaimer">
+        Scores are AI-generated estimates, may be inaccurate, and should never
+        be the sole basis for hiring decisions. Review original resumes and
+        assess candidates fairly.
+      </p>
+    </section>
+    {% endif %}
+
+    <footer>
+      <span>M&W</span>
+      <p>MATCHWISE · AI RESUME MATCHER</p>
+      <a href="#home">BACK TO TOP ↑</a>
+    </footer>
+  </main>
+
+  <script>
+    const input = document.getElementById("resumes");
+    const label = document.getElementById("file-label");
+    const form = document.getElementById("analysis-form");
+    const button = document.getElementById("submit-btn");
+
+    input.addEventListener("change", () => {
+      const files = Array.from(input.files || []);
+
+      label.textContent = files.length
+        ? files.map(file => file.name).join(", ")
+        : "Select one or more PDF or DOCX files";
+    });
+
+    form.addEventListener("submit", () => {
+      button.disabled = true;
+      button.innerHTML = "ANALYZING RESUMES <span>…</span>";
+    });
+  </script>
+</body>
+</html>
